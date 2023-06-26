@@ -1,0 +1,15 @@
+---
+
+- name: Create gitlab configuration file under /srv/gitlab folder
+  file: 
+    path: "/srv/gitlab/config/gitlab.rb"
+    state: touch
+  register: gitlab_rb_path
+
+- set_fact:
+    config_path: "{{ gitlab_rb_path.dest }}"
+
+- name: Copy gitlab.rb file from the files directory to gitlab config path
+  template:
+    src: templates/gitlab.rb.j2
+    dest: "{{ config_path }}"

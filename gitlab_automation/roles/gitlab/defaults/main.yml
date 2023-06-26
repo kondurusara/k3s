@@ -1,0 +1,23 @@
+---
+
+dependencies:
+  - cryptography
+  - kubernetes
+  - kubernetes-validate
+
+ssl_config_path: "/srv/gitlab/config/ssl"
+ns_name: hpeda
+gitlab_compose_dir: "/opt/hpe/staging/gitlab"
+image_available: False
+
+ipaddress: "{{ ansible_facts.default_ipv4.address }}"
+# Storage class name for PVC
+storage_class_name: manual
+
+# bootstrap_cfg: "{{ lookup('file','files/bootstrap_config.cfg') | from_json }}"
+# k8s_cluster_deployed: "{{ bootstrap_cfg.setup.k8s_cluster.deployed }}"
+# gitlab_port: "{{bootstrap_cfg.config['gitlab-ce']['port']}}"
+# gitlab_reg_port: "{{bootstrap_cfg.config['gitlab-ce']['registry_external_port']}}"
+# gitlab_ssh_port: "{{bootstrap_cfg.config['gitlab-ce']['ssh_port']}}"
+# local_repo: "{{bootstrap_cfg.setup['local_repo']}}"
+# gitlab_version: "{{ bootstrap_cfg.config['gitlab-ce']['components']['gitlab/gitlab-ce']['tag'] }}"

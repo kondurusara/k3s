@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitlab-config-pv
+  namespace: "{{ ns_name }}"
+  labels:
+    name: "config-{{ ns_name }}"
+    app: gitlab
+spec:
+  storageClassName: "{{ storage_class_name }}"
+  capacity:
+    storage: 3Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "{{ gitlab_path[0] }}"
+  #nfs:
+  #  path: "{{ gitlab_path[0] }}"
+  #  server: 10.3.60.205

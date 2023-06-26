@@ -1,0 +1,29 @@
+## GitLab configuration settings
+external_url 'https://{{ hostname }}:9443'
+gitlab_rails['gitlab_shell_ssh_port'] = 2224
+gitlab_rails['initial_root_password'] = "hpeDA2022!"
+
+#### Toggle if initial root password should be written to /etc/gitlab/initial_root_password
+gitlab_rails['store_initial_root_password'] = true
+
+################################################################################
+## Container Registry settings
+##! Docs: https://docs.gitlab.com/ee/administration/packages/container_registry.html:q!
+################################################################################
+
+registry_external_url 'https://{{ hostname }}:5050'
+
+### Settings used by GitLab application
+gitlab_rails['registry_enabled'] = true
+gitlab_rails['registry_host'] = "{{ hostname }}"
+gitlab_rails['registry_port'] = "5050"
+gitlab_rails['registry_path'] = "/var/opt/gitlab/gitlab-rails/shared/registry"
+registry['token_realm'] = "https://{{ ipaddress }}:9443"
+
+################################################################################
+## GitLab NGINX
+##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html
+################################################################################
+nginx['listen_port'] = 443
+nginx['ssl_certificate'] = "/etc/gitlab/ssl/{{ hostname }}.crt"
+nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/{{ hostname }}.key"

@@ -1,0 +1,79 @@
+---
+- name: Install and configure kubectl
+  hosts: localhost
+  gather_facts: false
+  become: true
+  tasks:
+  - name: Download kubectl binary
+   # shell: curl -sfL https://get.k3s.io | sh -
+    command: curl -LO https://dl.k8s.io/release/v1.27.2/bin/linux/amd64/kubectl
+    args:
+      chdir: /tmp
+      creates: /tmp/kubectl
+  - name: Download kubectl SHA256 checksum
+    command: curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+    args:
+      chdir: /tmp
+  - name: Make kubectl executable
+    file:
+      path: ~/.local/bin/kubectl
+      mode: '0777'
+
+  - name: Verify kubectl binary integrity
+    command: echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+    args:
+      chdir: /tmp
+
+  - name: Download kubectl
+    ansible.builtin.get_url:
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubectl"
+      dest: "/usr/local/bin/kubectl"
+      mode: "0755"
+  
+  - name: Make kubectl executable
+    file:
+      path: /usr/local/bin/kubectl
+      mode: '0755'
+
+  - name: Create directory for kubectl
+    file:
+      path: ~/.local/bin
+      state: directory
+      mode: '0755'
+  - name: Move kubectl to the desired location
+    command: mv ./kubectl ~/.local/bin/kubectl
+    args:
+      chdir: /tmp
+    ignore_errors: true
+  - name: move kubectl.sha256 to the desired location
+    command: mv ./kubectl.sha256 ~/.local/bin/kubectl.sha256
+    args:
+      chdir: /tmp 
+
+  - name: make kubectl executable
+    file:
+      path: ~/.local/bin/kubectl.sha256
+      mode: '0777' 
+  - name: Make kubectl.sha256  executable
+    file:
+      path: ~/.local/bin/kubectl
+      mode: '0777'
+
+  - name: Execute kubectl command
+    ansible.builtin.command:
+      cmd: ~/.local/bin/kubectl version --client
+    register: kubectl_output
+
+  - name: Display kubectl output
+    ansible.builtin.debug:
+      var: kubectl_output.stdout_lines
+  - name: Execute kubectl command
+    ansible.builtin.command:
+      cmd: ~/.local/bin/kubectl get pods -n kube-system
+    register: kubectl_output
+
+  - name: Display kubectl output
+    ansible.builtin.debug:
+      var: kubectl_output.stdout_lines
+
+

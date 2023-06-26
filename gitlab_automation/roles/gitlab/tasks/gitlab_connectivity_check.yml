@@ -1,0 +1,13 @@
+---
+
+- name: Wait till the IP address is reachable
+  ansible.builtin.wait_for:
+    host: "{{ ipaddress }}"
+    port: "{{ gitlab_port | default(9443) }}"
+    connect_timeout: "{{ connect_timeout | default(5) }}"
+    sleep: "{{ sleep_time | default(10) }}"
+    timeout: "{{ fail_timeout | default(600) }}"
+  register: output
+
+- debug:
+    msg: "{{ output }}"

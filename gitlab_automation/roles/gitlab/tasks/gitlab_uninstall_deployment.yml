@@ -1,0 +1,69 @@
+---
+
+- set_fact:
+    hostname: "{{ ansible_facts.hostname }}"
+  tags: 
+  - undeploy
+  - never
+
+- name: Delete all deployment pods, services and ingress of gitlab from staging directory
+  kubernetes.core.k8s:
+    state: absent
+    src: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    validate:
+      fail_on_error: yes
+  loop:
+    - { dst: gitlab-deployment.yml }
+    - { dst: gitlab-service.yml }
+    - { dst: gitlab-secret-tls.yml }
+    - { dst: gitlab-ingress.yml }
+  tags: 
+  - undeploy
+  - never
+
+- name: Delete gitlab volume claims
+  kubernetes.core.k8s:
+    state: absent
+    src: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    validate:
+      fail_on_error: yes
+  loop:
+    - { dst: gitlab-config-pvc.yml }
+    - { dst: gitlab-data-pvc.yml }
+    - { dst: gitlab-logs-pvc.yml }
+    - { dst: gitlab-ssl-pvc.yml }
+  tags: 
+  - undeploy
+  - never
+
+- name: Delete gitlab volumes
+  kubernetes.core.k8s:
+    state: absent
+    src: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    validate:
+      fail_on_error: yes
+  loop:
+    - { dst: gitlab-config-pv.yml }
+    - { dst: gitlab-data-pv.yml }
+    - { dst: gitlab-logs-pv.yml }
+    - { dst: gitlab-ssl-pv.yml }
+  tags: 
+  - undeploy
+  - never
+
+- name: "Deleting staging directory"
+  file:
+    path: "{{ gitlab_compose_dir }}"
+    state: absent
+  tags: 
+  - undeploy
+  - never
+
+- name: "Deleting storage folders"
+  file:
+    path: "{{item}}"
+    state: absent
+  loop: "{{ gitlab_path }}"
+  tags: 
+  - undeploy
+  - never

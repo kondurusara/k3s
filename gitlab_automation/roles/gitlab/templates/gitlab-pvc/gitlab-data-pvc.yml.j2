@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-data-pvc
+  namespace: "{{ ns_name }}"
+  labels:
+    name: "{{ ns_name }}"
+    app: gitlab
+spec:
+  storageClassName: "{{ storage_class_name }}"
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: "{{ data_storage | default('3Gi')}}"
+  selector:
+    matchLabels:
+      name: "data-{{ ns_name }}"

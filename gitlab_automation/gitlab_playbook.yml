@@ -1,0 +1,38 @@
+---
+
+- hosts: all
+  connection: local
+
+  vars:
+    #ansible_python_interpreter: "{{ setup.python_interpreter | default('/opt/hpe/Bootstrap/v2.0/hpeda-2.0/bin/python3') }}"
+    gitlab_path:
+      - "/srv/gitlab/config"
+      - "/srv/gitlab/config/ssl"
+      - "/srv/gitlab/data"
+      - "/srv/gitlab/logs"
+
+  tasks:
+    - name: Update the /etc/hosts file with node name
+      become: yes
+      become_user: root
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        line: "{{ansible_facts.default_ipv4.address}} {{ansible_facts.hostname}}"
+        state: present
+        
+    - name: "Deploy GitLab"
+      include_role:
+        name: gitlab
+
+    - name: "Upgrade GitLab"
+      include_role:
+        name: gitlab
+        tasks_from: "gitlab_upgrade"
+      tags: upgrade
+
+    - name: "Undeploy GitLab"
+      include_role:
+        name: gitlab
+        tasks_from: "gitlab_uninstall_deployment"
+      tags: undeploy
+

@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-ssl-pvc
+  namespace: "{{ ns_name }}"
+  labels:
+    name: "{{ ns_name }}"
+    app: gitlab
+spec:
+  storageClassName: "{{ storage_class_name }}"
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: "{{ ssl_storage | default('10Mi')}}"
+  selector:
+    matchLabels:
+      name: "ssl-{{ ns_name }}"

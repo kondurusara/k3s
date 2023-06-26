@@ -1,0 +1,25 @@
+---
+
+- name: Template Gitlab persistent volume claims configs
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    mode: 0744
+  with_items:
+    - { src: gitlab-pvc/gitlab-config-pvc.yml.j2, dst: gitlab-config-pvc.yml }
+    - { src: gitlab-pvc/gitlab-data-pvc.yml.j2, dst: gitlab-data-pvc.yml }
+    - { src: gitlab-pvc/gitlab-logs-pvc.yml.j2, dst: gitlab-logs-pvc.yml }
+    - { src: gitlab-pvc/gitlab-ssl-pvc.yml.j2, dst: gitlab-ssl-pvc.yml }
+  register: gitlab_pv
+
+- name: Persistent volume claims for the gitlab application from the gitlab staging directory
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    validate:
+      fail_on_error: yes
+  loop:
+    - { dst: gitlab-config-pvc.yml }
+    - { dst: gitlab-data-pvc.yml }
+    - { dst: gitlab-logs-pvc.yml }
+    - { dst: gitlab-ssl-pvc.yml }

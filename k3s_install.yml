@@ -1,0 +1,141 @@
+---
+- name: Setup K3s components
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Create k3s_components directory
+    file:
+      path: "k3s_components"
+      state: directory
+
+  - name: Change directory to k3s_dependencies
+    ansible.builtin.command: cd k3s_dependencies/
+
+  - name: Download install.sh
+    ansible.builtin.get_url:
+      url: "https://get.k3s.io/install.sh"
+      dest: "k3s_components/install.sh"
+      mode: "0755"
+
+  - name: Download k3s binary
+    ansible.builtin.get_url:
+      url: "https://github.com/k3s-io/k3s/releases/download/v1.25.0%2Bk3s1/k3s"
+      dest: "k3s_components/k3s"
+      mode: "0755"
+
+  - name: Download k3s-selinux RPM
+    ansible.builtin.get_url:
+      url: "https://github.com/k3s-io/k3s-selinux/releases/download/v1.2.stable.2/k3s-selinux-1.2-2.el8.noarch.rpm"
+      dest: "k3s_components/k3s-selinux-1.2-2.el8.noarch.rpm"
+
+  - name: Download k3s airgap images
+    ansible.builtin.get_url:
+      url: "https://github.com/k3s-io/k3s/releases/download/v1.25.0%2Bk3s1/k3s-airgap-images-amd64.tar.gz"
+      dest: "k3s_components/k3s-airgap-images-amd64.tar.gz"
+
+  - name: Make install.sh executable
+    ansible.builtin.file:
+      path: "k3s_components/install.sh"
+      mode: "0755"
+  - name: Decompress k3s-airgap-images
+    command: gunzip k3s-airgap-images-amd64.tar.gz
+    args:
+      chdir: "k3s_components"
+    ignore_errors: true
+  #- name: Install unzip packages
+   # yum:
+    #  name: unzip
+     # state: present
+    
+#  - name: unarchive k3s-airgap-images
+ #   ansible.builtin.unarchive: 
+  #    src: k3s_dependencies
+   #   dest: "k3s_dependencies/"
+    #  remote_src: true
+     # extra_opts: '--format=unzip"
+    #ignore_errors: true
+ 
+  - name: Install RPM package
+    yum:
+      name: rpm
+      state: present
+#  - name: Configure k3s-selinux repository
+ #   yum_repository:
+  #    name: k3s-selinux
+   #   description: K3s SELinux - stable
+    #  baseurl: https://rpm.rancher.io/k3s-selinux/stable/$releasever/noarch
+     # gpgcheck: yes
+      #gpgkey: https://rpm.rancher.io/public.key
+      #enabled: yes
+
+#  - name: Install k3s-selinux
+ #   yum:
+  #    name: k3s-selinux
+   #   state: present
+
+#  - name: Install k3s-selinux package
+ #   ansible.builtin.yum:
+  #    name: "k3s-selinux-1.2-2.el8.noarch.rpm"
+   #   state: present
+    #  update_cache: yes
+    #become: true
+ 
+  - name: Install container-selinux package
+    ansible.builtin.yum:
+      name: "container-selinux"
+      state: present
+      update_cache: yes
+
+
+  - name: Create agent images directory
+    ansible.builtin.file:
+      path: "/var/lib/rancher/k3s/agent/images/"
+      state: directory
+
+  - name: Copy airgap images to agent images directory
+    ansible.builtin.copy:
+      src: "k3s_components/k3s-airgap-images-amd64.tar"
+      dest: "/var/lib/rancher/k3s/agent/images/"
+  
+  - name: Copy k3s binary to /usr/local/bin/
+    ansible.builtin.copy:
+      src: "k3s_components/k3s"
+      dest: "/usr/local/bin/k3s"
+      mode: "0755"
+
+  
+  - name: Set environment variables
+    ansible.builtin.set_fact:
+      env:
+        INSTALL_K3S_SKIP_DOWNLOAD: true
+        INSTALL_K3S_SKIP_SELINUX_RPM: true
+        INSTALL_K3S_SELINUX_WARN: true
+
+  - name: Execute install.sh script
+    ansible.builtin.command: "./install.sh"
+    args:
+      chdir: "k3s_components"
+
+    #  changed_when: false 
+
+  - name: Set GIT_PYTHON_REFRESH environment variable
+    ansible.builtin.lineinfile:
+      path: ~/.bashrc
+      line: export GIT_PYTHON_REFRESH=quiet
+      state: present
+
+  - name: Set KUBECONFIG environment variable
+    ansible.builtin.lineinfile:
+      path: ~/.bashrc
+      line: export KUBECONFIG='etc/rancher/k3s/k3s.yaml'
+      state: present
+
+  
+
+
+
+
+
+
+
+

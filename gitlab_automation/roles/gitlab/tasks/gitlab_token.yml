@@ -1,0 +1,31 @@
+---
+
+- name: Get a list of all pods from any namespace
+  kubernetes.core.k8s_info:
+    kind: Pod
+    wait: yes
+    namespace: "{{ ns_name }}"
+    field_selectors:
+      - status.phase=Running
+  register: pod_list
+
+- set_fact:
+    pod_name: "{{ item.metadata.name }}"
+  when: "'gitlab-deployment' in item.metadata.name "
+  loop: "{{ pod_list.resources }}"
+
+- set_fact:
+    token_cmd: "/opt/gitlab/bin/gitlab-rails runner \"token = User.find_by_username('{{ gitlab_user }}').personal_access_tokens.create(scopes: [:read_user, :read_repository, :read_api, :api, :write_repository, :sudo, :read_registry, :write_registry],name: '{{ gitlab_access_token_name }}'); token.set_token('{{ gitlab_token }}'); token.save!\" "
+  no_log: true
+
+- name: Check token generation if fails, got to manual command trigger
+  block:
+    - name: Execute a command to save the token using kubernetes core module
+      kubernetes.core.k8s_exec:
+        namespace: "{{ ns_name }}"
+        pod: "{{ pod_name }}"
+        command: "{{ token_cmd }}"
+        container: "gitlab"
+  rescue:
+    - name: Execute command to save the token using shell command
+      ansible.builtin.shell: "kubectl -n {{ ns_name }} exec -i {{ pod_name }} -c 'gitlab' -- /bin/sh {{ token_cmd}}"

@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-deployment
+  namespace: "{{ ns_name }}"
+  labels:
+    name: "{{ ns_name }}"
+    app: gitlab
+spec:
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      containers:
+      - name: gitlab
+        image: "gitlab/gitlab-ce:{{gitlab_version | default('latest')}}"
+        imagePullPolicy: IfNotPresent 
+        env:
+          - name: GITLAB_HOME
+            value: "/srv/gitlab"
+        ports:
+          - containerPort: 443
+            hostPort: {{gitlab_port | int }}
+          - containerPort: 22
+            hostPort: {{gitlab_ssh_port | int }}
+          - containerPort: 5050
+            hostPort: {{gitlab_reg_port | int }}
+        volumeMounts:
+          - mountPath: /etc/gitlab
+            name: gitlab-config
+          - mountPath: /var/log/gitlab
+            name: gitlab-logs
+          - mountPath: /var/opt/gitlab
+            name: gitlab-data
+          - mountPath: /etc/gitlab/ssl
+            name: gitlab-ssl
+      volumes:
+        - name: gitlab-config
+          persistentVolumeClaim:
+            claimName: gitlab-config-pvc
+        - name: gitlab-logs
+          persistentVolumeClaim:
+            claimName: gitlab-logs-pvc
+        - name: gitlab-data
+          persistentVolumeClaim:
+            claimName: gitlab-data-pvc
+        - name: gitlab-ssl
+          persistentVolumeClaim:
+            claimName: gitlab-ssl-pvc

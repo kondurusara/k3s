@@ -1,0 +1,25 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitlab-ingress
+  namespace: "{{ ns_name }}"
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+  labels:
+    app: gitlab
+spec:
+  tls:
+  - hosts:
+    - "{{ hostname }}"
+    secretName: gitlab-secret-tls
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitlab-service
+            port:
+              number: {{gitlab_port | int }}

@@ -1,0 +1,66 @@
+---
+
+- set_fact:
+    k8s_cluster_deployed: false #"{{ setup.k8s_cluster.deployed }}"
+    gitlab_port: 9443 #"{{ config['gitlab-ce']['port'] }}"
+    gitlab_reg_port: 5050 #"{{ config['gitlab-ce']['registry_external_port'] }}"
+    gitlab_ssh_port: 2224 #"{{ config['gitlab-ce']['ssh_port'] }}"
+#    local_repo: "{{ setup['local_repo'] }}"
+    gitlab_version: 15.8.1-ce.0 #"{{ config['gitlab-ce']['components']['gitlab-ce']['tag'] }}"
+    gitlab_config_tls_key: "" #"{{ config['gitlab-ce']['ssl']['tls_key'] }}"
+    gitlab_config_tls_cert: "" #"{{ config['gitlab-ce']['ssl']['tls_cert'] }}"
+    ipaddress: "{{ ansible_facts.default_ipv4.address }}"
+
+- set_fact:
+    hostname: "{{ ansible_facts.hostname }}"
+  when: not k8s_cluster_deployed
+
+- set_fact:
+    hostname: "{{ setup.hostname }}"
+  when: k8s_cluster_deployed
+
+- name: "Create directories for gitlab"
+  include_tasks: gitlab_directory.yml
+
+- name: "Generate certificates for gitlab"
+  include_tasks: gitlab_certificate.yml
+
+- name: "Copy all configuration files to config directory"
+  include_tasks: gitlab_copy_config.yml
+
+- name: Create staging directory for gitlab
+  ansible.builtin.file:
+    state: directory
+    path: "{{ gitlab_compose_dir }}"
+  register: staging_path
+
+- name: "Create namespace for gitlab"
+  include_tasks: gitlab_namespace.yml
+  
+- name: "Create persistent volumes for gitlab"
+  include_tasks: gitlab_volumes.yml
+
+- name: "Create persistent volume claims for gitlab"
+  include_tasks: gitlab_volume_claims.yml
+
+- name: "Deployment, service, ingress and secret for gitlab"
+  include_tasks: gitlab_deployment.yml
+
+- name: pause for few mins to install the gitlab
+  ansible.builtin.pause:
+    minutes: "{{ mins | default(5)}}"
+
+- name: "Check the connectivity of gitlab after all the deployment"
+  include_tasks: gitlab_connectivity_check.yml
+
+
+- set_fact:
+    gitlab_token: 1234512345 #"{{ item.gitlab_token }}"
+    gitlab_user: root #"{{ item.gitlab_user }}"
+    gitlab_password: hpeDA2022! #"{{ item.gitlab_password }}"
+    gitlab_access_token_name : bootstrap #"{{ item.gitlab_access_token_name }}"
+#  loop: "{{ infra_credentials }}"
+  #no_log: true
+
+- name: "Save GitLab token"
+  include_tasks: gitlab_token.yml

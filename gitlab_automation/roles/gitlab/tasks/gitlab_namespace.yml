@@ -1,0 +1,18 @@
+---
+
+
+- name: Template Gitlab namespace
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    mode: 0744
+  with_items:
+    - { src: gitlab-namespace.yml.j2, dst: gitlab-namespace.yml }
+  register: gitlab_namespace
+
+- name: Create gitlab namespace 
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ gitlab_compose_dir }}/gitlab-namespace.yml"
+    validate:
+      fail_on_error: yes

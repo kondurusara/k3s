@@ -1,0 +1,59 @@
+---
+
+- block:
+  - set_fact:
+      crt_file_path: "{{ssl_config_path}}/{{hostname}}.crt"
+
+  - set_fact:
+      key_file_path: "{{ssl_config_path}}/{{hostname}}.key"
+
+  - name: Load cert and private key from config file of key and cert path
+    set_fact:
+      tls_cert: "{{ lookup('ansible.builtin.file', crt_file_path) }}"
+      tls_key: "{{ lookup('ansible.builtin.file', key_file_path) }}"
+
+  - name: Fetch the private key and cert file from the config path
+    set_fact:
+      gitlab_tls_key: "{{ tls_key | replace('\n', '') | replace('-----BEGIN RSA PRIVATE KEY-----', '') | replace('-----END RSA PRIVATE KEY-----','') }}"
+      gitlab_tls_cert: "{{ tls_cert | replace('\n', '') | replace('-----BEGIN CERTIFICATE-----', '') | replace('-----END CERTIFICATE-----','') }}"
+  when: gitlab_config_tls_key == '' and gitlab_config_tls_cert == '' and not k8s_cluster_deployed 
+
+
+- block:
+  - name: Load cert and private key from bootstrap config file path
+    set_fact:
+      tls_cert: "{{ lookup('ansible.builtin.file', gitlab_config_tls_cert) }}"
+      tls_key: "{{ lookup('ansible.builtin.file', gitlab_config_tls_key) }}"
+  
+  - name: Fetch the private key and cert key from the bootstrao config file path
+    set_fact:
+      gitlab_tls_key: "{{ tls_key | replace('\n', '') | replace('-----BEGIN RSA PRIVATE KEY-----', '') | replace('-----END RSA PRIVATE KEY-----','') }}"
+      gitlab_tls_cert: "{{ tls_cert | replace('\n', '') | replace('-----BEGIN CERTIFICATE-----', '') | replace('-----END CERTIFICATE-----','') }}"
+  
+  when: gitlab_config_tls_key != '' and gitlab_config_tls_cert != '' and k8s_cluster_deployed
+
+
+- name: Template Gitlab configs
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    mode: 0744
+  with_items:
+    - { src: gitlab/gitlab-deployment.yml.j2, dst: gitlab-deployment.yml }
+    - { src: gitlab/gitlab-service.yml.j2, dst: gitlab-service.yml }
+    - { src: gitlab/gitlab-secret-tls.yml.j2, dst: gitlab-secret-tls.yml }
+    - { src: gitlab/gitlab-ingress.yml.j2, dst: gitlab-ingress.yml }
+  register: launcher_state_primary
+
+
+- name: Deploy the gitlab application from the gitlab staging directory
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ gitlab_compose_dir }}/{{ item.dst }}"
+    validate:
+      fail_on_error: yes
+  loop:
+    - { dst: gitlab-deployment.yml }
+    - { dst: gitlab-service.yml }
+    - { dst: gitlab-secret-tls.yml }
+    - { dst: gitlab-ingress.yml }

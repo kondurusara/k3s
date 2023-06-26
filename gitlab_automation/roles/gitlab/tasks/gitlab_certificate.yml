@@ -1,0 +1,43 @@
+---
+
+- name: Check for all python package dependencies
+  community.general.python_requirements_info:
+    dependencies: "{{dependencies}}"
+  register: dependencies_info
+
+- name: Install all python package dependencies
+  ansible.builtin.pip:
+    name: "{{dependencies}}"
+  when: dependencies_info.not_found |length != 0
+
+
+- name: Show python lib/site paths
+  community.general.python_requirements_info:
+
+- name: Check for all python package dependencies 
+  community.general.python_requirements_info:
+    dependencies: "{{dependencies}}"
+  register: dependencies_info
+
+- fail:
+    msg: "Dependencies has to install"
+  when: dependencies_info.not_found | length != 0
+
+- block:
+  - name: Generate an OpenSSL private key with a different size (2048 bits)
+    community.crypto.openssl_privatekey:
+      path: "{{ssl_config_path}}/{{hostname}}.key"
+      size: 2048
+
+  - name: Generate an OpenSSL Certificate Signing Request
+    community.crypto.openssl_csr:
+      path: "{{ssl_config_path}}/{{hostname}}.csr"
+      privatekey_path: "{{ssl_config_path}}/{{hostname}}.key"
+
+  - name: Generate certificate using csr and private key file
+    community.crypto.x509_certificate:
+      provider: selfsigned
+      path: "{{ssl_config_path}}/{{hostname}}.crt"
+      privatekey_path: "{{ssl_config_path}}/{{hostname}}.key"
+      csr_path: "{{ssl_config_path}}/{{hostname}}.csr"
+  when:  gitlab_config_tls_key == '' and gitlab_config_tls_cert == '' and not k8s_cluster_deployed
